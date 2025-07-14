@@ -1,0 +1,23 @@
+server:
+  port: "8080"
+
+database:
+  host: "localhost"
+  port: "3306"
+  user: "root"
+  password: "root"
+  name: "llm_cloud"
+
+jwt:
+  secret: "tjp020215"
+  expiration_hours: 24
+
+storage:
+  type: "local" # 或 oss
+  local:
+    base_dir: "./storage_data"
+#  oss:
+#    endpoint: ""
+#    bucket: ""
+#    access_key_id: ""
+#    access_key_secret: ""
