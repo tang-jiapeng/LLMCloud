@@ -16,26 +16,26 @@ type userDao struct {
 	db *gorm.DB
 }
 
-func (r *userDao) CheckFieldExists(field string, value interface{}) (bool, error) {
+func (ud *userDao) CheckFieldExists(field string, value interface{}) (bool, error) {
 	var count int64
-	err := r.db.Model(&model.User{}).Where(field+" = ?", value).Count(&count).Error
+	err := ud.db.Model(&model.User{}).Where(field+" = ?", value).Count(&count).Error
 	if err != nil {
 		return false, err
 	}
 	return count > 0, nil
 }
 
-func (r *userDao) CreateUser(user *model.User) error {
-	err := r.db.Create(user).Error
+func (ud *userDao) CreateUser(user *model.User) error {
+	err := ud.db.Create(user).Error
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (r *userDao) GetUserByName(name string) (*model.User, error) {
+func (ud *userDao) GetUserByName(name string) (*model.User, error) {
 	var user model.User
-	err := r.db.Model(&model.User{}).Where("username = ?", name).First(&user).Error
+	err := ud.db.Model(&model.User{}).Where("username = ?", name).First(&user).Error
 	if err != nil {
 		return nil, err
 	}

@@ -16,3 +16,13 @@ type File struct {
 	CreatedAt   time.Time `gorm:"autoCreateTime"` // 创建时间
 	UpdatedAt   time.Time `gorm:"autoUpdateTime"` // 更新时间
 }
+
+type CreateFolderReq struct {
+	Name     string  `json:"name"`
+	ParentID *string `json:"parent_id,omitempty"`
+}
+
+type BatchMoveRequest struct {
+	FileIDs        []string `json:"files_pid" binding:"required"`
+	TargetParentID string   `json:"target_pid"`
+}

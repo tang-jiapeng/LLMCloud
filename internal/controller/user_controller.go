@@ -20,12 +20,12 @@ func NewUserController(userService service.UserService) *UserController {
 func (c *UserController) Register(ctx *gin.Context) {
 	var req model.User
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		response.ErrorWithCode(ctx, errcode.ParamBindError, "用户注册参数错误")
+		response.ParamError(ctx, errcode.ParamBindError, "用户注册参数错误")
 		return
 	}
 
 	if err := c.userService.Register(&req); err != nil {
-		response.ErrorWithCode(ctx, errcode.UserRegisterError, err.Error())
+		response.InternalError(ctx, errcode.InternalServerError, "注册失败")
 		return
 	}
 
@@ -35,12 +35,13 @@ func (c *UserController) Register(ctx *gin.Context) {
 func (c *UserController) Login(ctx *gin.Context) {
 	var req model.UserNameLoginReq
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		response.ErrorWithCode(ctx, errcode.ParamBindError, "用户名或密码错误")
+		response.ParamError(ctx, errcode.ParamBindError, "用户名或密码错误")
 		return
 	}
 	loginResponse, err := c.userService.Login(&req)
 	if err != nil {
-		response.ErrorWithCode(ctx, errcode.PasswordError, "用户名或密码错误")
+		response.InternalError(ctx, errcode.InternalServerError, "登录失败")
+		return
 	}
 
 	response.SuccessWithMessage(ctx, "登录成功", gin.H{
