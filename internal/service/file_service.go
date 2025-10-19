@@ -289,6 +289,7 @@ func NewFileService(fileDao dao.FileDao) FileService {
 	cfg := config.AppConfigInstance.Storage
 	driver, err := storage.NewDriver(cfg)
 	if err != nil {
+		log.Printf("Failed to initialize storage driver: %v", err)
 		return nil
 	}
 	return &fileService{

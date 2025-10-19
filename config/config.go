@@ -23,14 +23,23 @@ type JWTConfig struct {
 	ExpirationHours int    `mapstructure:"expiration_hours"`
 }
 
+type MinioConfig struct {
+	Endpoint        string `mapstructure:"endpoint"`
+	Bucket          string `mapstructure:"bucket"`
+	AccessKeyID     string `mapstructure:"access_key_id"`
+	AccessKeySecret string `mapstructure:"access_key_secret"`
+	UseSSL          bool   `mapstructure:"use_ssl"`
+	Region          string `mapstructure:"region"`
+}
+
 type StorageConfig struct {
-	Type  string      `mapstructure:"type"` // local/oss
+	Type  string      `mapstructure:"type"` // local/oss/minio
 	Local LocalConfig `mapstructure:"local"`
 	OSS   OSSConfig   `mapstructure:"oss"`
 }
 
 type LocalConfig struct {
-	BaseDir string `mapstructure:"base_dir"` // 本地存储根目录（如 /data/storage
+	BaseDir string `mapstructure:"base_dir"` // 本地存储根目录(如 /data/storage)
 }
 
 type OSSConfig struct {

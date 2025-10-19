@@ -13,14 +13,21 @@ jwt:
   expiration_hours: 24
 
 storage:
-  type: "local" # 或 oss
+  type: "local" # 或 oss / minio
   local:
     base_dir: "./storage_data"
-#  oss:
-#    endpoint: ""
-#    bucket: ""
-#    access_key_id: ""
-#    access_key_secret: ""
+  oss:
+    endpoint: ""
+    bucket: ""
+    access_key_id: ""
+    access_key_secret: ""
+  minio:
+    endpoint: "localhost:9000"
+    bucket: "llm-cloud"
+    access_key_id: "minioadmin"
+    access_key_secret: "minioadmin"
+    use_ssl: false
+    region: ""
 
 # 新增 CORS 配置
 cors:
