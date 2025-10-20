@@ -25,11 +25,91 @@ type FileService interface {
 	DeleteFileOrFolder(userID uint, fileID string) error
 	CreateFolder(userID uint, name string, parentID *string) error
 	BatchMoveFiles(userID uint, fileIDs []string, targetParentID string) error
+	SearchList(userID uint, key string, page int, size int, sort string) (int64, []model.File, error)
+	Rename(userID uint, fileID string, newName string) error
+	GetFilePath(fileID string) (string, error)
+	GetFileIDPath(fileID string) (string, error)
 }
 
 type fileService struct {
 	fileDao       dao.FileDao
 	storageDriver storage.Driver
+}
+
+func (fs *fileService) SearchList(userID uint, key string, page int, pageSize int, sort string) (int64, []model.File, error) {
+	total, err := fs.fileDao.CountFilesByKeyword(key, userID)
+	if err != nil {
+		return 0, nil, err
+	}
+	files, err := fs.fileDao.GetFilesByKeyword(userID, key, page, pageSize, sort)
+	if err != nil {
+		return 0, nil, err
+	}
+	return total, files, nil
+}
+
+func (fs *fileService) Rename(userID uint, fileID string, newName string) error {
+	// 根据id获取file信息
+	file, err := fs.fileDao.GetFileMetaByFileID(fileID)
+	if err != nil {
+		return errors.New("请检查文件是否存在")
+	}
+	// 检查同名信息
+	existing, _ := fs.fileDao.GetFilesByParentID(userID, file.ParentID)
+	for _, f := range existing {
+		if f.Name == newName {
+			return errors.New("目标名称已占用")
+		}
+	}
+	// 更新信息
+	file.Name = newName
+	file.UpdatedAt = time.Now()
+	if err := fs.fileDao.UpdateFile(file); err != nil {
+		return errors.New("重命名失败")
+	}
+	return nil
+}
+
+// GetFilePath 通过递归查询生成文件路径
+func (fs *fileService) GetFilePath(fileID string) (string, error) {
+	file, err := fs.fileDao.GetFileMetaByFileID(fileID)
+	if err != nil {
+		return "", err
+	}
+	path := file.Name
+	currentParentID := file.ParentID
+
+	for currentParentID != nil {
+		parent, err := fs.fileDao.GetFileMetaByFileID(*currentParentID)
+		if err != nil {
+			return "", err
+		}
+		path = parent.Name + "/" + path
+		currentParentID = parent.ParentID
+	}
+	return "/root/" + path, nil
+}
+
+// GetFileIDPath 生成基于文件ID的路径
+func (fs *fileService) GetFileIDPath(fileID string) (string, error) {
+	file, err := fs.fileDao.GetFileMetaByFileID(fileID)
+	if err != nil {
+		return "", err
+	}
+
+	path := file.ID
+	currentParentID := file.ParentID
+
+	for currentParentID != nil {
+		parent, err := fs.fileDao.GetFileMetaByFileID(*currentParentID)
+		if err != nil {
+			return "", err
+		}
+		path = parent.ID + "/" + path
+		currentParentID = parent.ParentID
+	}
+
+	return "/root/" + path, nil
 }
 
 func (fs *fileService) UploadFile(userID uint, fileHeader *multipart.FileHeader, file multipart.File, parentID string) error {

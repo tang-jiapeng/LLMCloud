@@ -174,3 +174,86 @@ func (fc *FileController) BatchMove(ctx *gin.Context) {
 
 	response.SuccessWithMessage(ctx, "移动成功", nil)
 }
+
+func (fc *FileController) Search(ctx *gin.Context) {
+	userID, err := utils.GetUserIDFromContext(ctx)
+	if err != nil {
+		response.UnauthorizedError(ctx, errcode.UnauthorizedError, "用户校验失败")
+		return
+	}
+
+	key := ctx.Query("key")
+
+	page, pageSize, err := utils.ParsePaginationParams(ctx)
+	if err != nil {
+		response.ParamError(ctx, errcode.ParamValidateError, "分页参数错误")
+		return
+	}
+	sort := ctx.DefaultQuery("sort", "name:asc")
+	if err := utils.ValidateSortParameter(sort, []string{"name", "update_at"}); err != nil {
+		response.ParamError(ctx, errcode.ParamValidateError, "排序参数错误")
+	}
+	total, files, err := fc.fileService.SearchList(userID, key, page, pageSize, sort)
+	if err != nil {
+		response.InternalError(ctx, errcode.FileSearchFailed, "搜索文件失败")
+	}
+	response.PageSuccess(ctx, files, total)
+}
+
+func (fc *FileController) Rename(ctx *gin.Context) {
+	var req model.RenameRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		response.ParamError(ctx, errcode.ParamBindError, "参数错误")
+		return
+	}
+
+	userID, err := utils.GetUserIDFromContext(ctx)
+	if err != nil {
+		response.UnauthorizedError(ctx, errcode.UnauthorizedError, "用户验证失败")
+		return
+	}
+
+	if err = fc.fileService.Rename(userID, req.FileID, req.NewName); err != nil {
+		response.InternalError(ctx, errcode.InternalServerError, fmt.Sprintf("重命名失败 %s", err))
+		return
+	}
+	response.SuccessWithMessage(ctx, "重命名成功", nil)
+}
+
+// GetPath 获取文件的完整路径
+func (fc *FileController) GetPath(ctx *gin.Context) {
+	fileID := ctx.Query("file_id")
+	if fileID == "" {
+		response.ParamError(ctx, errcode.ParamValidateError, "文件ID不能为空")
+		return
+	}
+	// 获取文件路径
+	path, err := fc.fileService.GetFilePath(fileID)
+	if err != nil {
+		response.InternalError(ctx, errcode.FileNotFound, "获取文件路径失败")
+		return
+	}
+	response.SuccessWithMessage(ctx, "获取文件路径成功", gin.H{
+		"path": path,
+	})
+}
+
+// GetIDPath 获取文件的ID路径
+func (fc *FileController) GetIDPath(ctx *gin.Context) {
+	fileID := ctx.Query("file_id")
+	if fileID == "" {
+		response.ParamError(ctx, errcode.ParamValidateError, "文件ID不能为空")
+		return
+	}
+
+	// 获取文件ID路径
+	path, err := fc.fileService.GetFileIDPath(fileID)
+	if err != nil {
+		response.InternalError(ctx, errcode.FileNotFound, "获取文件路径失败")
+		return
+	}
+
+	response.SuccessWithMessage(ctx, "获取文件ID路径成功", gin.H{
+		"id_path": path,
+	})
+}

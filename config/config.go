@@ -36,6 +36,7 @@ type StorageConfig struct {
 	Type  string      `mapstructure:"type"` // local/oss/minio
 	Local LocalConfig `mapstructure:"local"`
 	OSS   OSSConfig   `mapstructure:"oss"`
+	Minio MinioConfig `mapstructure:"minio"`
 }
 
 type LocalConfig struct {

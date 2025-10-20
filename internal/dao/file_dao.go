@@ -18,11 +18,44 @@ type FileDao interface {
 	ListFiles(userID uint, parentID *string, page int, pageSize int, sort string) ([]model.File, error)
 	CountFilesByParentID(parentID *string, userID uint) (int64, error)
 	UpdateFile(file *model.File) error
+	CountFilesByKeyword(key string, userID uint) (int64, error)
+	GetFilesByKeyword(userID uint, key string, page int, pageSize int, sort string) ([]model.File, error)
 }
 
 // fileDao 实现了FileDao接口，提供文件相关操作
 type fileDao struct {
 	db *gorm.DB
+}
+
+func (fd *fileDao) CountFilesByKeyword(key string, userID uint) (int64, error) {
+	var total int64
+	query := fd.db.Model(&model.File{}).
+		Where("user_id = ?", userID).
+		Where("name like ?", "%"+key+"%")
+	if err := query.Count(&total).Error; err != nil {
+		return 0, err
+	}
+	return total, nil
+}
+
+func (fd *fileDao) GetFilesByKeyword(userID uint, key string, page int, pageSize int, sort string) ([]model.File, error) {
+	var files []model.File
+	query := fd.db.Model(&model.File{}).Where("user_id = ?", userID).
+		Where("name like ?", "%"+key+"%").Order("is_dir desc")
+
+	sortClauses := strings.Split(sort, ",")
+	for _, clause := range sortClauses {
+		parts := strings.Split(clause, ":")
+		filed, order := parts[0], parts[1]
+		query = query.Order(fmt.Sprintf("%s %s", filed, order))
+	}
+	offset := (page - 1) * pageSize
+	query = query.Offset(offset).Limit(pageSize)
+
+	if err := query.Find(&files).Error; err != nil {
+		return nil, err
+	}
+	return files, nil
 }
 
 // CreateFile 创建一个新的文件记录
@@ -33,7 +66,7 @@ type fileDao struct {
 // 返回值:
 //
 //	error: 如果创建过程中发生错误，则返回错误信息
-func (fd fileDao) CreateFile(file *model.File) error {
+func (fd *fileDao) CreateFile(file *model.File) error {
 	if fd.db == nil {
 		return errors.New("数据库未初始化")
 	}
@@ -50,7 +83,7 @@ func (fd fileDao) CreateFile(file *model.File) error {
 //
 //	[]model.File: 匹配条件的文件列表
 //	error: 如果查询过程中发生错误，则返回错误信息
-func (fd fileDao) GetFilesByParentID(userID uint, parentID *string) ([]model.File, error) {
+func (fd *fileDao) GetFilesByParentID(userID uint, parentID *string) ([]model.File, error) {
 	var files []model.File
 	query := fd.db.Where("user_id = ?", userID)
 	if parentID == nil {
@@ -76,7 +109,7 @@ func (fd fileDao) GetFilesByParentID(userID uint, parentID *string) ([]model.Fil
 //
 //	*model.File: 如果找到匹配的文件，则返回文件的指针，否则返回nil
 //	error: 如果查询过程中发生错误，则返回错误信息
-func (fd fileDao) GetFileMetaByFileID(id string) (*model.File, error) {
+func (fd *fileDao) GetFileMetaByFileID(id string) (*model.File, error) {
 	var file model.File
 	result := fd.db.Where("id = ?", id).First(&file)
 	if result.Error != nil {
@@ -96,7 +129,7 @@ func (fd fileDao) GetFileMetaByFileID(id string) (*model.File, error) {
 // 返回值:
 //
 //	interface{}: 如果删除过程中发生错误，则返回错误信息，否则返回nil
-func (fd fileDao) DeleteFile(id string) error {
+func (fd *fileDao) DeleteFile(id string) error {
 	if err := fd.db.Where("id = ?", id).Delete(&model.File{}).Error; err != nil {
 		return err
 	}
@@ -116,7 +149,7 @@ func (fd fileDao) DeleteFile(id string) error {
 //
 //	[]model.File: 匹配条件的文件列表
 //	error: 如果查询过程中发生错误，则返回错误信息
-func (fd fileDao) ListFiles(userID uint, parentID *string, page int, pageSize int, sort string) ([]model.File, error) {
+func (fd *fileDao) ListFiles(userID uint, parentID *string, page int, pageSize int, sort string) ([]model.File, error) {
 	var files []model.File
 	query := fd.db.Model(&model.File{}).Where("user_id = ?", userID)
 
@@ -153,7 +186,7 @@ func (fd fileDao) ListFiles(userID uint, parentID *string, page int, pageSize in
 //
 //	int64: 文件数量
 //	error: 如果查询过程中发生错误，则返回错误信息
-func (fd fileDao) CountFilesByParentID(parentID *string, userID uint) (int64, error) {
+func (fd *fileDao) CountFilesByParentID(parentID *string, userID uint) (int64, error) {
 	var total int64
 	query := fd.db.Model(&model.File{}).Where("user_id = ?", userID)
 
@@ -177,7 +210,7 @@ func (fd fileDao) CountFilesByParentID(parentID *string, userID uint) (int64, er
 // 返回值:
 //
 //	error: 如果更新过程中发生错误，则返回错误信息
-func (fd fileDao) UpdateFile(file *model.File) error {
+func (fd *fileDao) UpdateFile(file *model.File) error {
 	if fd.db == nil {
 		return errors.New("数据库未初始化")
 	}
